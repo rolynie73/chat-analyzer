@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model UserApiKeys {
+  id           String   @id @default(cuid())
+  clerkUserId  String   @unique
+  anthropicKey String?
+  openaiKey    String?
+  googleKey    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Analysis {
+  id           String   @id @default(cuid())
+  clerkUserId  String
+  title        String
+  rawChat      String   @db.Text
+  orientation  String
+  provider     String
+  model        String
+  modelName    String
+  msgCount     Int
+  participants String[]
+  result       Json
+  createdAt    DateTime @default(now())
+
+  @@index([clerkUserId])
+}
