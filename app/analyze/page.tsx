@@ -254,66 +254,86 @@ export default function AnalyzePage() {
 
                 {/* Token warning + limit selector */}
                 {tooLong && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                    <p className="text-sm font-semibold text-amber-800 mb-1">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-4">
+                    <p className="text-sm font-semibold text-amber-800">
                       ⚠️ Chat muy largo — {Math.round(estimateTokens(parsed.chatText) / 1000)}k tokens estimados
                     </p>
 
-                    {/* AI recommendation */}
-                    <div className="mb-3 flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                      <span className="text-base">🤖</span>
-                      <p className="text-xs text-blue-700">
-                        <strong>Recomendación:</strong>{" "}
-                        {isFinite(recommendedLimit)
-                          ? `últimos ${Math.min(recommendedLimit, parsed.msgCount).toLocaleString("es")} mensajes (~${Math.round(SAFE_INPUT_TOKENS / 1000)}k tokens) para análisis confiable`
-                          : "el chat entra bien en el modelo"}
-                      </p>
-                    </div>
+                    {/* AI recommendation CTA */}
+                    {isFinite(recommendedLimit) && (
+                      <div className="flex items-center justify-between gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div>
+                          <p className="text-xs font-bold text-blue-800">🤖 Recomendación de la IA</p>
+                          <p className="text-xs text-blue-600 mt-0.5">
+                            Últimos <strong>{Math.min(recommendedLimit, parsed.msgCount).toLocaleString("es")} mensajes</strong>{" "}
+                            · ~{Math.round(estimateTokens(buildChatText(parsed.messages, recommendedLimit)) / 1000)}k tokens — análisis confiable sin riesgo de corte
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setMsgLimit(recommendedLimit)}
+                          className={`shrink-0 px-4 py-2 text-xs font-bold rounded-lg border-2 transition-colors ${
+                            msgLimit === recommendedLimit
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white text-blue-700 border-blue-400 hover:bg-blue-600 hover:text-white hover:border-blue-600"
+                          }`}
+                        >
+                          {msgLimit === recommendedLimit ? "✓ Aplicado" : "Usar este límite"}
+                        </button>
+                      </div>
+                    )}
 
-                    <p className="text-xs text-amber-700 mb-3">
-                      Elegí cuántos mensajes enviar. Los botones en rojo superan el límite seguro del modelo:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {MSG_LIMIT_OPTIONS.map((opt) => {
-                        const tokens = estimateTokens(buildChatText(parsed.messages, opt.value));
-                        const overLimit = tokens > 190_000;
-                        const isSelected = msgLimit === opt.value;
-                        const isRecommended = isFinite(recommendedLimit) &&
-                          isFinite(opt.value) &&
-                          opt.value <= recommendedLimit &&
-                          (MSG_LIMIT_OPTIONS.find(o => isFinite(o.value) && o.value > recommendedLimit)?.value === opt.value ||
-                           MSG_LIMIT_OPTIONS.filter(o => isFinite(o.value) && o.value <= recommendedLimit).at(-1)?.value === opt.value);
-                        return (
-                          <div key={opt.value} className="relative">
-                            {isRecommended && (
-                              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-blue-600 bg-blue-50 px-1 rounded whitespace-nowrap">
-                                IA recomienda
-                              </span>
-                            )}
+                    {/* Manual selector */}
+                    <div>
+                      <p className="text-xs font-medium text-amber-700 mb-2">O ajustá manualmente:</p>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {MSG_LIMIT_OPTIONS.map((opt) => {
+                          const tokens = estimateTokens(buildChatText(parsed.messages, opt.value));
+                          const overLimit = tokens > 190_000;
+                          const isSelected = msgLimit === opt.value;
+                          return (
                             <button
+                              key={opt.value}
                               onClick={() => setMsgLimit(opt.value)}
                               className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                                 isSelected
                                   ? "bg-gray-900 text-white border-gray-900"
-                                  : isRecommended
-                                  ? "bg-blue-50 text-blue-700 border-blue-300 hover:border-blue-500"
                                   : overLimit
-                                  ? "bg-white text-red-600 border-red-200 hover:border-red-400"
-                                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+                                  ? "bg-white text-red-500 border-red-200 hover:border-red-400"
+                                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
                               }`}
                             >
                               {opt.label}
-                              <span className={`ml-1 ${overLimit && !isSelected ? "text-red-400" : "opacity-60"}`}>
+                              <span className={`ml-1 opacity-60 ${overLimit && !isSelected ? "text-red-400" : ""}`}>
                                 (~{Math.round(tokens / 1000)}k)
                               </span>
                             </button>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom number input */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-amber-700 shrink-0">Personalizado:</span>
+                        <input
+                          type="number"
+                          min={50}
+                          max={parsed.msgCount}
+                          placeholder={`1–${parsed.msgCount}`}
+                          value={isFinite(msgLimit) && !MSG_LIMIT_OPTIONS.some(o => o.value === msgLimit) ? msgLimit : ""}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value);
+                            if (!isNaN(v) && v > 0) setMsgLimit(v);
+                          }}
+                          className="w-28 px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        />
+                        <span className="text-xs text-gray-400">mensajes</span>
+                      </div>
                     </div>
+
                     {isFinite(msgLimit) && (
-                      <p className="text-xs text-amber-600 mt-2">
-                        Se enviarán los últimos {Math.min(msgLimit, parsed.msgCount).toLocaleString("es")} mensajes · ~{Math.round(estimatedTokens / 1000)}k tokens
+                      <p className="text-xs text-amber-600">
+                        Selección actual: últimos <strong>{Math.min(msgLimit, parsed.msgCount).toLocaleString("es")}</strong> mensajes · ~<strong>{Math.round(estimatedTokens / 1000)}k</strong> tokens
+                        {estimatedTokens > 190_000 && <span className="text-red-500 ml-1">⚠️ puede fallar</span>}
                       </p>
                     )}
                   </div>
