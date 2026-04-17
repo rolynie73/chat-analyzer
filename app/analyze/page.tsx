@@ -155,10 +155,44 @@ export default function AnalyzePage() {
         {step === 1 && (
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Subí el chat</h1>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500 mb-4">
               Exportá el chat de WhatsApp como .txt, o pegá cualquier conversación en formato{" "}
               <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">Nombre: mensaje</code> por línea.
             </p>
+
+            {/* WhatsApp export instructions */}
+            <details className="mb-6 bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <summary className="px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer select-none flex items-center gap-2 hover:bg-gray-50">
+                <span>📱</span> ¿Cómo exportar un chat de WhatsApp?
+              </summary>
+              <div className="px-4 pb-4 pt-1 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs font-bold text-gray-700 mb-1.5">📱 iPhone</p>
+                    <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                      <li>Abrí el chat en WhatsApp</li>
+                      <li>Tocá el nombre del contacto/grupo</li>
+                      <li>Bajá hasta <strong>Exportar chat</strong></li>
+                      <li>Elegí <strong>Sin archivos multimedia</strong></li>
+                      <li>Compartí el .txt o guardalo</li>
+                    </ol>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs font-bold text-gray-700 mb-1.5">🤖 Android</p>
+                    <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                      <li>Abrí el chat en WhatsApp</li>
+                      <li>Tocá los tres puntos ⋮ arriba a la derecha</li>
+                      <li>Seleccioná <strong>Más → Exportar chat</strong></li>
+                      <li>Elegí <strong>Sin archivos multimedia</strong></li>
+                      <li>Guardá o compartí el archivo .txt</li>
+                    </ol>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400">
+                  💡 También podés copiar y pegar mensajes de Telegram o cualquier app — el formato <em>Nombre: mensaje</em> funciona directamente.
+                </p>
+              </div>
+            </details>
 
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
