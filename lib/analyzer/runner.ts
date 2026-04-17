@@ -18,10 +18,13 @@ export async function runAnalysis({ model, system, userMessage, apiKey }: RunOpt
     const client = new Anthropic({ apiKey });
     const res = await client.messages.create({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system,
       messages: [{ role: "user", content: userMessage }],
     });
+    if (res.stop_reason === "max_tokens") {
+      throw new Error("La respuesta fue cortada por el límite de tokens. Probá con un chat más corto o un modelo más rápido.");
+    }
     return res.content[0].type === "text" ? res.content[0].text : "";
   }
 
@@ -29,21 +32,27 @@ export async function runAnalysis({ model, system, userMessage, apiKey }: RunOpt
     const client = new OpenAI({ apiKey });
     const res = await client.chat.completions.create({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       temperature: 0.3,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userMessage },
       ],
     });
+    if (res.choices[0]?.finish_reason === "length") {
+      throw new Error("La respuesta fue cortada por el límite de tokens. Probá con un chat más corto o un modelo más rápido.");
+    }
     return res.choices[0]?.message?.content ?? "";
   }
 
   if (modelDef.provider === "google") {
     const genAI = new GoogleGenerativeAI(apiKey);
     const gemModel = genAI.getGenerativeModel({ model, systemInstruction: system });
-    const chat = gemModel.startChat({ generationConfig: { maxOutputTokens: 4096, temperature: 0.3 } });
+    const chat = gemModel.startChat({ generationConfig: { maxOutputTokens: 8192, temperature: 0.3 } });
     const result = await chat.sendMessage(userMessage);
+    if (result.response.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+      throw new Error("La respuesta fue cortada por el límite de tokens. Probá con un chat más corto o un modelo más rápido.");
+    }
     return result.response.text();
   }
 
