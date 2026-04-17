@@ -48,7 +48,11 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
                 {formatDate(analysis.createdAt)}
               </p>
             </div>
-            <AnalysisActions analysisId={analysis.id} />
+            <AnalysisActions
+              analysisId={analysis.id}
+              title={analysis.title}
+              orientationLabel={meta?.label ?? analysis.orientation}
+            />
           </div>
         </div>
 

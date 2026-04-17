@@ -1,24 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Props {
   analysisId: string;
+  title: string;
+  orientationLabel: string;
 }
 
-export default function AnalysisActions({ analysisId }: Props) {
+export default function AnalysisActions({ analysisId, title, orientationLabel }: Props) {
+  const router = useRouter();
   const [emailOpen, setEmailOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const prev = document.title;
+    document.title = `ChatAnalyzer — ${title} — ${orientationLabel}`;
+    window.print();
+    setTimeout(() => { document.title = prev; }, 1000);
+  };
 
   const handleSendEmail = async () => {
     if (!email) return;
     setSending(true);
-    setError("");
+    setEmailError("");
     try {
       const res = await fetch("/api/send-analysis", {
         method: "POST",
@@ -32,15 +43,26 @@ export default function AnalysisActions({ analysisId }: Props) {
       setSent(true);
       setEmail("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error desconocido");
+      setEmailError(e instanceof Error ? e.message : "Error desconocido");
     } finally {
       setSending(false);
     }
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await fetch(`/api/analyses/${analysisId}`, { method: "DELETE" });
+      router.push("/dashboard");
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   return (
     <div className="print:hidden flex flex-col gap-3">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={handlePrint}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
@@ -53,7 +75,7 @@ export default function AnalysisActions({ analysisId }: Props) {
         </button>
 
         <button
-          onClick={() => { setEmailOpen((v) => !v); setSent(false); setError(""); }}
+          onClick={() => { setEmailOpen((v) => !v); setSent(false); setEmailError(""); }}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,6 +84,35 @@ export default function AnalysisActions({ analysisId }: Props) {
           </svg>
           Enviar por mail
         </button>
+
+        {confirmDelete ? (
+          <div className="flex gap-1">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 disabled:opacity-50 transition-colors"
+            >
+              {deleting ? "Eliminando…" : "Confirmar"}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Eliminar
+          </button>
+        )}
       </div>
 
       {emailOpen && (
@@ -87,7 +138,7 @@ export default function AnalysisActions({ analysisId }: Props) {
               </button>
             </div>
           )}
-          {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+          {emailError && <p className="mt-2 text-xs text-red-600">{emailError}</p>}
         </div>
       )}
     </div>
