@@ -50,7 +50,8 @@ REGLAS ABSOLUTAS:
 2. Respondé en español rioplatense, con onda pero sin perder precisión.
 3. Nunca diagnosticás condiciones clínicas. Describís patrones comunicacionales.
 4. Si el chat tiene menos de 15 mensajes, el nivel de confianza es "bajo".
-5. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.`;
+5. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.
+6. JSON COMPACTO: citas máx 80 chars, arrays máx 4 elementos, textos máx 2 oraciones.`;
 
 const VIBES_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, sin backticks, sin texto adicional.
 
@@ -94,7 +95,8 @@ REGLAS ABSOLUTAS:
 2. Usás SIEMPRE lenguaje probabilístico: "sugiere", "podría indicar", "es consistente con", "se observa", "tiende a".
 3. Cada inferencia tiene evidencia textual literal del chat.
 4. Si hay menos de 20 mensajes, confianza es "bajo". Advertilo.
-5. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.`;
+5. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.
+6. JSON COMPACTO: citas máx 80 chars, arrays máx 2 evidencias, textos máx 2 oraciones.`;
 
 const PSYCH_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, sin backticks.
 
@@ -144,7 +146,8 @@ REGLAS:
 1. Basate exclusivamente en evidencia textual del chat.
 2. No asumas contexto laboral si no está implícito en la conversación.
 3. Las recomendaciones son constructivas y accionables.
-4. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.`;
+4. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.
+5. JSON COMPACTO: citas máx 80 chars, arrays máx 4 elementos, textos máx 2 oraciones.`;
 
 const PROFESSIONAL_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, sin backticks.
 
@@ -187,7 +190,8 @@ REGLAS ABSOLUTAS:
 1. El "narcisismo" es un espectro comunicacional observable, NO un diagnóstico clínico. Describís comportamientos, no personas.
 2. Las señales de manipulación se reportan siempre con evidencia textual y cautela.
 3. Usás lenguaje descriptivo, no sentencioso. "Se observa un patrón de X" no "Es un narcisista".
-4. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.`;
+4. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.
+5. JSON COMPACTO: citas máx 80 chars, arrays máx 4 elementos, textos máx 2 oraciones.`;
 
 const SOCIAL_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, sin backticks.
 
@@ -232,7 +236,8 @@ REGLAS:
 1. Basate exclusivamente en evidencia textual del chat.
 2. El análisis es observacional, no prescriptivo. No juzgás a los participantes.
 3. Usás lenguaje probabilístico cuando inferís motivaciones o estados internos.
-4. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.`;
+4. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.
+5. JSON COMPACTO: citas máx 80 chars, arrays máx 4 elementos, textos máx 2 oraciones.`;
 
 const RELATIONAL_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, sin backticks.
 
@@ -282,8 +287,18 @@ interface PromptInput {
   participantNames: string[];
 }
 
+const CONCISENESS_RULES = `
+REGLAS DE CONCISIÓN OBLIGATORIAS (para que el JSON no sea truncado):
+- Cada fragmento/evidencia/cita literal: MÁXIMO 80 caracteres. Cortalo con "…" si es más largo.
+- Arrays de evidencias: MÁXIMO 2 elementos.
+- Arrays de señales, flags, mecanismos, competencias: MÁXIMO 4 elementos.
+- Arrays de palabras_caracteristicas: MÁXIMO 6 elementos.
+- Textos descriptivos (descripcion, perfil_narrativo, etc.): MÁXIMO 2 oraciones cortas.
+- Si hay más de 6 participantes, analizá solo los 6 más activos.`;
+
 function buildUserMessage({ chatText, msgCount, dateRange, participantNames }: PromptInput, schema: string) {
   return `${schema}
+${CONCISENESS_RULES}
 
 === CHAT A ANALIZAR ===
 Mensajes totales: ${msgCount}
@@ -293,7 +308,7 @@ Participantes detectados: ${participantNames.join(", ")}
 ${chatText}
 === FIN DEL CHAT ===
 
-Analizá este chat y devolvé ÚNICAMENTE el JSON con la estructura especificada.`;
+Analizá este chat y devolvé ÚNICAMENTE el JSON con la estructura especificada. Respetá las reglas de concisión.`;
 }
 
 export function buildPrompt(
