@@ -416,7 +416,15 @@ export default function AnalyzePage() {
                               <span className="text-xs font-bold text-gray-800">{m.name}</span>
                               <span title={m.speed}>{SPEED_ICONS[m.speed]}</span>
                             </div>
-                            <p className="text-xs text-gray-500">{m.description}</p>
+                            <p className="text-xs text-gray-500 mb-2">{m.description}</p>
+                            <div className="flex gap-1 flex-wrap">
+                              <span className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono">
+                                in ${m.pricing.input}/MTok
+                              </span>
+                              <span className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono">
+                                out ${m.pricing.output}/MTok
+                              </span>
+                            </div>
                           </button>
                         ))}
                       </div>

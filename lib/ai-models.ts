@@ -6,7 +6,10 @@ export interface AIModel {
   name: string;
   description: string;
   speed: "fast" | "balanced" | "powerful";
-  free?: boolean;
+  pricing: {
+    input: number;  // USD per 1M tokens
+    output: number; // USD per 1M tokens
+  };
 }
 
 export const AI_MODELS: AIModel[] = [
@@ -16,6 +19,7 @@ export const AI_MODELS: AIModel[] = [
     name: "Claude Haiku 4.5",
     description: "Rápido y económico",
     speed: "fast",
+    pricing: { input: 1, output: 5 },
   },
   {
     id: "claude-sonnet-4-6",
@@ -23,6 +27,7 @@ export const AI_MODELS: AIModel[] = [
     name: "Claude Sonnet 4.6",
     description: "Equilibrado y preciso",
     speed: "balanced",
+    pricing: { input: 3, output: 15 },
   },
   {
     id: "claude-opus-4-7",
@@ -30,6 +35,7 @@ export const AI_MODELS: AIModel[] = [
     name: "Claude Opus 4.7",
     description: "Máxima profundidad",
     speed: "powerful",
+    pricing: { input: 5, output: 25 },
   },
   {
     id: "gpt-4o-mini",
@@ -37,6 +43,7 @@ export const AI_MODELS: AIModel[] = [
     name: "GPT-4o Mini",
     description: "Rápido y económico",
     speed: "fast",
+    pricing: { input: 0.15, output: 0.60 },
   },
   {
     id: "gpt-4o",
@@ -44,6 +51,7 @@ export const AI_MODELS: AIModel[] = [
     name: "GPT-4o",
     description: "Potente y versátil",
     speed: "balanced",
+    pricing: { input: 2.50, output: 10 },
   },
   {
     id: "gpt-4.1",
@@ -51,6 +59,7 @@ export const AI_MODELS: AIModel[] = [
     name: "GPT-4.1",
     description: "Alta capacidad",
     speed: "powerful",
+    pricing: { input: 2, output: 8 },
   },
   {
     id: "gemini-2.5-flash",
@@ -58,6 +67,7 @@ export const AI_MODELS: AIModel[] = [
     name: "Gemini 2.5 Flash",
     description: "Ultra rápido",
     speed: "fast",
+    pricing: { input: 0.30, output: 2.50 },
   },
   {
     id: "gemini-2.5-pro",
@@ -65,6 +75,7 @@ export const AI_MODELS: AIModel[] = [
     name: "Gemini 2.5 Pro",
     description: "Razonamiento avanzado",
     speed: "balanced",
+    pricing: { input: 1.25, output: 10 },
   },
 ];
 
