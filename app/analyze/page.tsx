@@ -47,6 +47,7 @@ export default function AnalyzePage() {
   const [orientation, setOrientation] = useState<Orientation | "">("");
   const [model, setModel] = useState("");
   const [configuredKeys, setConfiguredKeys] = useState<ConfiguredKeys | null>(null);
+  const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
@@ -69,6 +70,7 @@ export default function AnalyzePage() {
     if (result.msgCount > 0) {
       setParsed(result);
       setMsgLimit(Infinity);
+      setSelectedParticipants(new Set(result.participantNames));
     } else {
       setParsed(null);
     }
@@ -91,18 +93,28 @@ export default function AnalyzePage() {
     []
   );
 
-  const effectiveChatText = parsed ? buildChatText(parsed.messages, msgLimit) : "";
-  const effectiveMsgCount = parsed
-    ? isFinite(msgLimit)
-      ? Math.min(msgLimit, parsed.msgCount)
-      : parsed.msgCount
-    : 0;
+  const filteredMessages = parsed
+    ? selectedParticipants.size > 0
+      ? parsed.messages.filter((m) => selectedParticipants.has(m.sender))
+      : []
+    : [];
+
+  const effectiveChatText = filteredMessages.length > 0
+    ? (isFinite(msgLimit) ? filteredMessages.slice(-msgLimit) : filteredMessages)
+        .map((m) => `${m.sender}: ${m.text}`).join("\n")
+    : "";
+
+  const effectiveMsgCount = isFinite(msgLimit)
+    ? Math.min(msgLimit, filteredMessages.length)
+    : filteredMessages.length;
+
   const estimatedTokens = estimateTokens(effectiveChatText);
-  const tooLong = parsed ? estimateTokens(parsed.chatText) > TOKEN_WARN : false;
+  const fullFilteredText = filteredMessages.map((m) => `${m.sender}: ${m.text}`).join("\n");
+  const tooLong = filteredMessages.length > 0 ? estimateTokens(fullFilteredText) > TOKEN_WARN : false;
 
   // Smart recommendation: how many messages fit in SAFE_INPUT_TOKENS
-  const recommendedLimit = parsed && parsed.msgCount > 0
-    ? Math.floor(SAFE_INPUT_TOKENS / (estimateTokens(parsed.chatText) / parsed.msgCount))
+  const recommendedLimit = filteredMessages.length > 0
+    ? Math.floor(SAFE_INPUT_TOKENS / (estimateTokens(fullFilteredText) / filteredMessages.length))
     : Infinity;
 
   const handleAnalyze = async () => {
@@ -253,6 +265,48 @@ export default function AnalyzePage() {
                   </div>
                 </div>
 
+                {/* Participant filter */}
+                {parsed && parsed.participantNames.length > 1 && (
+                  <div className="p-4 bg-white border border-gray-200 rounded-xl">
+                    <p className="text-sm font-semibold text-gray-800 mb-3">
+                      Participantes a analizar
+                    </p>
+                    <div className="space-y-2">
+                      {parsed.participantNames.map((name) => {
+                        const count = parsed.messages.filter((m) => m.sender === name).length;
+                        const pct = Math.round((count / parsed.msgCount) * 100);
+                        return (
+                          <label key={name} className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={selectedParticipants.has(name)}
+                              onChange={(e) => {
+                                const next = new Set(selectedParticipants);
+                                if (e.target.checked) next.add(name);
+                                else next.delete(name);
+                                setSelectedParticipants(next);
+                              }}
+                              className="w-4 h-4 accent-gray-900 shrink-0"
+                            />
+                            <span className="text-sm text-gray-800 flex-1 truncate group-hover:text-gray-900">{name}</span>
+                            <span className="text-xs text-gray-400 shrink-0">
+                              {count.toLocaleString("es")} msgs · {pct}%
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {selectedParticipants.size === 0 && (
+                      <p className="text-xs text-red-500 mt-2">Seleccioná al menos un participante</p>
+                    )}
+                    {selectedParticipants.size > 0 && selectedParticipants.size < parsed.participantNames.length && (
+                      <p className="text-xs text-gray-400 mt-2">
+                        {selectedParticipants.size} de {parsed.participantNames.length} participantes · {filteredMessages.length.toLocaleString("es")} mensajes en total
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Token warning + limit selector */}
                 {tooLong && (
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-4">
@@ -266,8 +320,8 @@ export default function AnalyzePage() {
                         <div>
                           <p className="text-xs font-bold text-blue-800">🤖 Recomendación de la IA</p>
                           <p className="text-xs text-blue-600 mt-0.5">
-                            Últimos <strong>{Math.min(recommendedLimit, parsed.msgCount).toLocaleString("es")} mensajes</strong>{" "}
-                            · ~{Math.round(estimateTokens(buildChatText(parsed.messages, recommendedLimit)) / 1000)}k tokens — análisis confiable sin riesgo de corte
+                            Últimos <strong>{Math.min(recommendedLimit, filteredMessages.length).toLocaleString("es")} mensajes</strong>{" "}
+                            · ~{Math.round(estimateTokens((isFinite(recommendedLimit) ? filteredMessages.slice(-recommendedLimit) : filteredMessages).map(m=>`${m.sender}: ${m.text}`).join("\n")) / 1000)}k tokens — análisis confiable sin riesgo de corte
                           </p>
                         </div>
                         <button
@@ -288,7 +342,8 @@ export default function AnalyzePage() {
                       <p className="text-xs font-medium text-amber-700 mb-2">O ajustá manualmente:</p>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {MSG_LIMIT_OPTIONS.map((opt) => {
-                          const tokens = estimateTokens(buildChatText(parsed.messages, opt.value));
+                          const slice = isFinite(opt.value) ? filteredMessages.slice(-opt.value) : filteredMessages;
+                          const tokens = estimateTokens(slice.map(m=>`${m.sender}: ${m.text}`).join("\n"));
                           const overLimit = tokens > 190_000;
                           const isSelected = msgLimit === opt.value;
                           return (
@@ -344,10 +399,12 @@ export default function AnalyzePage() {
 
             <button
               onClick={() => setStep(2)}
-              disabled={!parsed || (tooLong && estimatedTokens > 190_000)}
+              disabled={!parsed || selectedParticipants.size === 0 || (tooLong && estimatedTokens > 190_000)}
               className="mt-6 w-full py-3 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {tooLong && estimatedTokens > 190_000
+              {selectedParticipants.size === 0
+                ? "Seleccioná al menos un participante"
+                : tooLong && estimatedTokens > 190_000
                 ? "Seleccioná un límite de mensajes"
                 : "Continuar →"}
             </button>
@@ -425,6 +482,11 @@ export default function AnalyzePage() {
               <span className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-gray-600">
                 ~{Math.round(estimatedTokens / 1000)}k tokens
               </span>
+              {parsed && selectedParticipants.size < parsed.participantNames.length && (
+                <span className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700">
+                  {selectedParticipants.size} participante{selectedParticipants.size !== 1 ? "s" : ""}
+                </span>
+              )}
               {isFinite(msgLimit) && (
                 <span className="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-amber-700">
                   últimos {msgLimit.toLocaleString("es")} msgs
