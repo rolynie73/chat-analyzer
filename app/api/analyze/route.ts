@@ -9,7 +9,7 @@ import { getModelById } from "@/lib/ai-models";
 
 const bodySchema = z.object({
   rawChat: z.string().min(10),
-  orientation: z.enum(["vibes", "psych", "professional", "social", "relational"]),
+  orientation: z.enum(["vibes", "psych", "professional", "social", "relational", "stats"]),
   model: z.string().min(1),
   title: z.string().optional(),
 });
