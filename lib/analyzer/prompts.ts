@@ -294,7 +294,7 @@ REGLAS DE CONCISIÓN OBLIGATORIAS (para que el JSON no sea truncado):
 - Arrays de señales, flags, mecanismos, competencias: MÁXIMO 4 elementos.
 - Arrays de palabras_caracteristicas: MÁXIMO 6 elementos.
 - Textos descriptivos (descripcion, perfil_narrativo, etc.): MÁXIMO 2 oraciones cortas.
-- Si hay más de 6 participantes, analizá solo los 6 más activos.`;
+- Analizá TODOS los participantes listados en "Participantes detectados".`;
 
 function buildUserMessage({ chatText, msgCount, dateRange, participantNames }: PromptInput, schema: string) {
   return `${schema}
