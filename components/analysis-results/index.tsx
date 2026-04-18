@@ -4,6 +4,7 @@ import PsychResultView from "./psych";
 import ProfessionalResultView from "./professional";
 import SocialResultView from "./social";
 import RelationalResultView from "./relational";
+import StatsResultView from "./stats";
 
 interface AnalysisResultsProps {
   orientation: Orientation;
@@ -22,6 +23,8 @@ export default function AnalysisResults({ orientation, result }: AnalysisResults
       return <SocialResultView result={result as Parameters<typeof SocialResultView>[0]["result"]} />;
     case "relational":
       return <RelationalResultView result={result as Parameters<typeof RelationalResultView>[0]["result"]} />;
+    case "stats":
+      return <StatsResultView result={result as Parameters<typeof StatsResultView>[0]["result"]} />;
     default:
       return (
         <pre className="text-xs bg-gray-50 rounded-xl p-4 overflow-auto border border-gray-200">

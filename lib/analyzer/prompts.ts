@@ -1,4 +1,4 @@
-export type Orientation = "vibes" | "psych" | "professional" | "social" | "relational";
+export type Orientation = "vibes" | "psych" | "professional" | "social" | "relational" | "stats";
 
 export const ORIENTATION_META: Record<
   Orientation,
@@ -38,6 +38,13 @@ export const ORIENTATION_META: Record<
     description: "Temperatura del vínculo, compatibilidad, estilos de apego y perspectiva de futuro.",
     gradient: "from-pink-500 to-rose-400",
     border: "border-pink-300",
+  },
+  stats: {
+    label: "Estadísticas",
+    emoji: "📊",
+    description: "Mensajes por usuario, palabras y frases más usadas, emojis, récords y curiosidades del chat.",
+    gradient: "from-cyan-500 to-blue-400",
+    border: "border-cyan-300",
   },
 };
 
@@ -278,6 +285,116 @@ const RELATIONAL_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, si
   }
 }`;
 
+// ─── STATS ────────────────────────────────────────────────────────────────────
+
+const STATS_SYSTEM = `Sos un analista de datos especializado en conversaciones digitales. Tu tarea es extraer estadísticas precisas y patrones cuantitativos de chats.
+
+REGLAS ABSOLUTAS:
+1. Contás mensajes por participante leyendo el formato "Nombre: mensaje". Los porcentajes deben sumar 100%.
+2. Para chats grandes (>500 msgs), las frecuencias de palabras son estimaciones por muestreo — indicalo en curiosidades.
+3. Excluís stopwords del español (de, la, el, en, y, a, que, un, una, los, las, con, por, para, lo, se, es, no, si, te, me, mi, tu, su, al, del, ya, yo, le, más, pero, como, muy, hay, así, eso, todo, bien, solo) del ranking de palabras.
+4. Excluís también: "jaja", "jajaja", "jajaj", "ok", "oke", "oki", "sí", "si" de palabras pero no de frases si son representativas.
+5. Si el chat NO tiene timestamps, marcás "N/D" en campos de hora/día.
+6. Respondés ÚNICAMENTE con el JSON especificado. Sin texto fuera del JSON.`;
+
+const STATS_SCHEMA = `Respondé ÚNICAMENTE con este JSON. Sin markdown, sin backticks, sin texto adicional.
+
+{
+  "meta": {
+    "mensajes_totales": 0,
+    "participantes_count": 0,
+    "tipo_chat": "1-a-1 | grupo",
+    "periodo": "string o N/D",
+    "dias_estimados": 0
+  },
+  "actividad": {
+    "por_participante": [
+      {
+        "nombre": "",
+        "mensajes": 0,
+        "porcentaje": 0,
+        "promedio_palabras_por_mensaje": 0,
+        "total_palabras_estimado": 0,
+        "estilo_longitud": "telegráfico | normal | extenso",
+        "inicia_conversaciones": "frecuente | ocasional | rara vez"
+      }
+    ],
+    "mas_activo": "",
+    "mas_silencioso": "",
+    "dia_mas_activo": "nombre del día o fecha o N/D",
+    "franja_horaria_pico": "mañana (6-12) | tarde (12-18) | noche (18-24) | madrugada (0-6) | N/D"
+  },
+  "palabras": {
+    "top_global": [
+      { "palabra": "", "veces_estimadas": 0 }
+    ],
+    "por_participante": [
+      {
+        "nombre": "",
+        "top_palabras": ["", "", "", "", ""],
+        "muletilla": "expresión o palabra más característica con ejemplo literal"
+      }
+    ],
+    "frases_repetidas": [
+      { "frase": "", "veces_estimadas": 0, "quien": "nombre o 'varios'" }
+    ]
+  },
+  "emojis": {
+    "top_emojis": [
+      { "emoji": "", "veces_estimadas": 0 }
+    ],
+    "mayor_usuario": "",
+    "menor_usuario": "",
+    "chat_sin_emojis": false
+  },
+  "patrones": {
+    "quien_inicia_mas": "",
+    "velocidad_respuesta": "instantánea (<5min) | rápida (<1h) | normal (<24h) | lenta (>24h) | N/D",
+    "uso_preguntas": "frecuente | moderado | escaso",
+    "uso_monosilabos": "frecuente | moderado | escaso",
+    "uso_mayusculas_para_enfatizar": "frecuente | ocasional | nunca",
+    "idioma_predominante": "español | inglés | spanglish | otro"
+  },
+  "records": {
+    "mensaje_mas_largo": { "extracto": "", "autor": "" },
+    "participante_mas_palabras_por_mensaje": "",
+    "participante_con_mensajes_mas_cortos": "",
+    "emoji_mas_usado": "",
+    "palabra_mas_repetida": "",
+    "hora_pico_estimada": "string o N/D"
+  },
+  "curiosidades": [
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "resumen": "2-3 oraciones destacando los patrones estadísticos más llamativos del chat"
+}`;
+
+function buildStatsUserMessage({ chatText, msgCount, dateRange, participantNames }: PromptInput) {
+  return `${STATS_SCHEMA}
+
+INSTRUCCIONES ADICIONALES:
+- top_global: listá las 10 palabras más frecuentes (excluyendo stopwords).
+- top_emojis: listá los 8 emojis más usados.
+- frases_repetidas: hasta 6 frases o expresiones que se repiten.
+- top_palabras por participante: 5 palabras más características de cada uno.
+- curiosidades: exactamente 5 datos curiosos o sorprendentes (récords, contrastes, patrones raros).
+- Los porcentajes de mensajes deben sumar 100%.
+
+=== CHAT A ANALIZAR ===
+Mensajes totales: ${msgCount}
+Período: ${dateRange}
+Participantes: ${participantNames.join(", ")}
+
+${chatText}
+=== FIN DEL CHAT ===
+
+Analizá este chat y devolvé ÚNICAMENTE el JSON con la estructura especificada.`;
+}
+
 // ─── Builders ─────────────────────────────────────────────────────────────────
 
 interface PromptInput {
@@ -315,7 +432,11 @@ export function buildPrompt(
   orientation: Orientation,
   input: PromptInput
 ): { system: string; userMessage: string } {
-  const configs: Record<Orientation, { system: string; schema: string }> = {
+  if (orientation === "stats") {
+    return { system: STATS_SYSTEM, userMessage: buildStatsUserMessage(input) };
+  }
+
+  const configs: Record<Exclude<Orientation, "stats">, { system: string; schema: string }> = {
     vibes: { system: VIBES_SYSTEM, schema: VIBES_SCHEMA },
     psych: { system: PSYCH_SYSTEM, schema: PSYCH_SCHEMA },
     professional: { system: PROFESSIONAL_SYSTEM, schema: PROFESSIONAL_SCHEMA },
@@ -323,6 +444,6 @@ export function buildPrompt(
     relational: { system: RELATIONAL_SYSTEM, schema: RELATIONAL_SCHEMA },
   };
 
-  const { system, schema } = configs[orientation];
+  const { system, schema } = configs[orientation as Exclude<Orientation, "stats">];
   return { system, userMessage: buildUserMessage(input, schema) };
 }
