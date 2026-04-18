@@ -26,7 +26,8 @@ const MSG_LIMIT_OPTIONS = [
 ];
 
 const TOKEN_WARN = 100_000;
-const SAFE_INPUT_TOKENS = 80_000;
+// API tokens run ~2.5x higher than length/4 estimate; 35k estimated ≈ 87k actual → safely under 200k
+const SAFE_INPUT_TOKENS = 35_000;
 
 function estimateTokens(text: string) {
   return Math.ceil(text.length / 4);
