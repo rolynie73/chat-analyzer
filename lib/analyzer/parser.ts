@@ -19,9 +19,10 @@ function parseWhatsApp(rawText: string): ParsedChat {
   const messages: ParsedChat["messages"] = [];
 
   // Covers Android: "12/3/24, 14:05 - Name: msg"
-  // and iOS:        "[12/3/24, 14:05:33] Name: msg"
+  // iOS (brackets, no dash): "[12/3/24, 14:05:33] Name: msg"
+  // European dots: "12.03.2024, 14:05 - Name: msg"
   const regex =
-    /^[\[\(]?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}),?\s(\d{1,2}:\d{2}(?::\d{2})?(?:\s?[ap]\.?m\.?)?)\]?\s[-–]\s(.+?):\s(.+)$/i;
+    /^[\[\(]?(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4}),?\s(\d{1,2}:\d{2}(?::\d{2})?(?:\s?[ap]\.?\s?m\.?)?)\]?\s?(?:[-–]\s)?(.+?):\s(.+)$/i;
 
   let current: ParsedChat["messages"][0] | null = null;
 
@@ -74,7 +75,10 @@ function parsePlain(rawText: string): ParsedChat {
   for (const line of lines) {
     const match = line.match(/^(.+?):\s+(.+)$/);
     if (match) {
-      messages.push({ sender: match[1].trim(), text: match[2].trim() });
+      const sender = match[1].trim();
+      // Skip lines where "sender" looks like a date/timestamp fragment (WhatsApp format that failed to parse)
+      if (/^\d{1,2}[\/\.\-]\d{1,2}/.test(sender)) continue;
+      messages.push({ sender, text: match[2].trim() });
     }
   }
 
